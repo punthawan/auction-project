@@ -1,23 +1,18 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/user.schema");
 
 const authMiddleware = async (req, res, next) => {
-  const token = req.headers["x-acess-token"];
-  if (!token) return res.status(401).json({ message: "Token is required" });
+  const token = req.cookies.accessToken;
+  if (!token) {
+    return res.status(401).json({ message: "Token is required" });
+  }
 
   try {
-    // Decode token
+    // ตรวจสอบความถูกต้องของ Token
     const decoded = jwt.verify(token, process.env.TOKEN_KEY);
-    req.user = decoded;
-
-    const user = await User.findById(decoded._id);
-    if (!user || user.token !== token) {
-      return res.status(403).json({ message: "Invalid or expired token" });
-    }
-
-    next();
+    req.user = decoded; 
+    next(); // ส่งต่อไปยัง route ถัดไป
   } catch (err) {
-    res.status(403).json({ message: "Invalid token" });
+    return res.status(403).json({ message: "Invalid or expired token" });
   }
 };
 

@@ -6,8 +6,8 @@ const sendVerificationEmail = async (email, verificationLink) => {
         const transporter = nodemailer.createTransport({
             service: "Gmail", // หรือใช้บริการอื่นที่คุณตั้งค่าไว้ เช่น Outlook, Yahoo
             auth: {
-                user: process.env.EMAIL_USER, // อีเมลของคุณ
-                pass: process.env.EMAIL_PASS, // รหัสผ่านอีเมล (หรือ App Password)
+                user: process.env.EMAIL_USER, 
+                pass: process.env.EMAIL_PASS, 
             },
         });
 

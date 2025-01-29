@@ -27,7 +27,7 @@ const register = async (req, res) => {
           username,
           email,
           password: hashedPassword,
-          isEmailVerified: false
+          isEmailVerified: false,
       });
 
       // Save new user to the database
@@ -46,56 +46,87 @@ const register = async (req, res) => {
 
       // Send verification email
       const verificationLink = `http://localhost:5000/api/auth/verify-email?token=${token}`;
-      await sendVerificationEmail(savedUser.email, verificationLink);
+      try {
+        await sendVerificationEmail(savedUser.email, verificationLink); // Catch any errors here
+      } catch (emailError) {
+        console.error("Error sending verification email:", emailError);
+        return res.status(500).json({ message: 'ไม่สามารถส่งอีเมลยืนยันได้' });
+      }
 
       res.status(201).json({ message: 'User registered successfully. Please check your email to verify your account.' });
   } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error1' });
+      console.error("Server error:", error); // Log the actual server error
+      res.status(500).json({ message: 'เกิดข้อผิดพลาดในระบบ: ' + error.message });
   }
 };
 
 
-//Login
+//login
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "อีเมล์ไม่ถูกต้อง" });
     }
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "รหัสผ่านไม่ถูกต้อง" });
     }
 
-    if(user.isEmailVerified == false){
+    if (!user.isEmailVerified) {
       return res.status(400).json({ message: "กรุณายืนยัน Email ก่อน" });
     }
 
-    // Generate new JWT token
-    const token = jwt.sign({ _id: user._id }, process.env.TOKEN_KEY, { expiresIn: "1h" });
+    // สร้าง accessToken
+    const accessToken = jwt.sign(
+      { _id: user._id, email: user.email }, 
+      process.env.TOKEN_KEY, 
+      { expiresIn: "1h" } // token อายุ 1 ชั่วโมง
+    );
 
-    // Save the new token in a database or cache (optional)
-    user.token = token; 
-    await user.save();
+    // สร้าง refreshToken
+    const refreshToken = jwt.sign(
+      { _id: user._id, email: user.email }, 
+      process.env.REFRESH_TOKEN_KEY, 
+      { expiresIn: "7d" } // refreshToken อายุ 7 วัน
+    );
 
-    res.status(200).json({ token, userId: user._id });
+     res.cookie("accessToken", accessToken, {
+      httpOnly: true,   
+      secure: process.env.NODE_ENV === "production", 
+      maxAge: 3600000,  
+    });
 
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,   
+      secure: process.env.NODE_ENV === "production", 
+      maxAge: 604800000, 
+    });
+
+    // ส่ง accessToken และ refreshToken กลับไปยัง Client
+    return res.status(200).json({
+      message: "เข้าสู่ระบบสำเร็จ",
+      accessToken, // ส่ง accessToken
+      refreshToken, // ส่ง refreshToken
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+      },
+    });
+  } catch (error) {
+    console.error("Login Error:", error);
+    return res.status(500).json({ message: "เกิดข้อผิดพลาดในระบบ" });
   }
 };
 
 
-
 // Logout
 const logout = (req, res) => {
-    const token = req.headers["x-acess-token"];
+    const token = req.cookies.accessToken;
 
     if (!token) {
         return res.status(401).json({ message: "Token is required" });
@@ -103,9 +134,38 @@ const logout = (req, res) => {
 
     // เพิ่ม token ไปยัง blacklist
     blacklist.add(token);
-
     res.status(200).json({ message: "Logged out successfully" });
 };
 
-module.exports = { register, login, logout }
+const refreshToken = async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: "Refresh Token is required" });
+  }
+
+  try {
+    // ตรวจสอบว่า refreshToken ถูกต้อง
+    const decoded = jwt.verify(refreshToken, process.env.TOKEN_KEY);
+    const user = await User.findOne({ _id: decoded._id });
+
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(403).json({ message: "Invalid or expired refresh token" });
+    }
+
+    // สร้าง accessToken ใหม่
+    const accessToken = jwt.sign(
+      { _id: user._id, email: user.email }, // payload
+      process.env.TOKEN_KEY, // secret key
+      { expiresIn: "1h" } // accessToken อายุ 1 ชั่วโมง
+    );
+
+    // ส่ง accessToken ใหม่กลับไป
+    return res.status(200).json({ accessToken });
+  } catch (error) {
+    return res.status(403).json({ message: "Invalid or expired refresh token" });
+  }
+};
+
+module.exports = { register, login, logout, refreshToken}
  
