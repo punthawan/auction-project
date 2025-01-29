@@ -10,7 +10,7 @@ const authMiddleware = async (req, res, next) => {
     // ตรวจสอบความถูกต้องของ Token
     const decoded = jwt.verify(token, process.env.TOKEN_KEY);
     req.user = decoded; 
-    next(); // ส่งต่อไปยัง route ถัดไป
+    next(); 
   } catch (err) {
     return res.status(403).json({ message: "Invalid or expired token" });
   }
