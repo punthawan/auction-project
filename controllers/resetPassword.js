@@ -1,13 +1,12 @@
 const nodemailer = require("nodemailer");
-const User = require("../models/user.schema"); // Import User Model
+const User = require("../models/user.schema"); 
 const bcrypt = require('bcrypt');
 
-// ตั้งค่า Nodemailer สำหรับ Gmail
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER, // ใส่อีเมลของคุณในไฟล์ .env
-    pass: process.env.EMAIL_PASS, // ใส่รหัสผ่านของอีเมลคุณ
+    user: process.env.EMAIL_USER, 
+    pass: process.env.EMAIL_PASS, 
   },
 });
 

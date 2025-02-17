@@ -9,7 +9,7 @@ const auctionSchema = new mongoose.Schema({
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
   winner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  status: { type: String, enum: ["ongoing", "completed"], default: "ongoing" },
+  status: { type: String, enum: ["ongoing", "completed","upcoming"], default: "ongoing" },
 
   participants: [
     { 
