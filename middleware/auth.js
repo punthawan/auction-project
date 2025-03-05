@@ -1,18 +1,18 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 
-const authMiddleware = async (req, res, next) => {
-  const token = req.cookies.accessToken;
+const authMiddleware = (req, res, next) => {
+  const token = req.cookies.accessToken;  
+
   if (!token) {
-    return res.status(401).json({ message: "Token is required" });
+    return res.status(401).json({ message: "กรุณาเข้าสู่ระบบก่อน" });
   }
 
   try {
-    // ตรวจสอบความถูกต้องของ Token
     const decoded = jwt.verify(token, process.env.TOKEN_KEY);
-    req.user = decoded; 
-    next(); 
-  } catch (err) {
-    return res.status(403).json({ message: "Invalid or expired token" });
+    req.user = decoded;  
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Token ไม่ถูกต้อง" });
   }
 };
 

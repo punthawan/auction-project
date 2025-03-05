@@ -114,12 +114,50 @@ const login = async (req, res) => {
       user: {
         id: user._id,
         email: user.email,
-        name: user.name,
+        username: user.username,
       },
     });
   } catch (error) {
     console.error("Login Error:", error);
     return res.status(500).json({ message: "เกิดข้อผิดพลาดในระบบ" });
+  }
+};
+
+// Update Account Information
+const updateAccount = async (req, res) => {
+  try {
+    const userId = req.user._id; // ได้จาก authMiddleware
+    const { username, oldPassword, newPassword } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "ไม่พบผู้ใช้" });
+    }
+
+    // เปลี่ยน username ถ้ามี
+    if (username) {
+      const existingUser = await User.findOne({ username });
+      if (existingUser && existingUser._id.toString() !== userId.toString()) {
+        return res.status(400).json({ message: "Username นี้มีคนใช้แล้ว" });
+      }
+      user.username = username;
+    }
+
+    // เปลี่ยน password ถ้ามี
+    if (oldPassword && newPassword) {
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "รหัสผ่านเดิมไม่ถูกต้อง" });
+      }
+      user.password = await bcrypt.hash(newPassword, 10);
+    }
+
+    await user.save();
+    res.status(200).json({ message: "อัปเดตข้อมูลสำเร็จ" });
+
+  } catch (error) {
+    console.error("Update Account Error:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในระบบ" });
   }
 };
 
@@ -167,5 +205,5 @@ const refreshToken = async (req, res) => {
   }
 };
 
-module.exports = { register, login, logout, refreshToken}
+module.exports = { register, login, updateAccount, logout, refreshToken}
  

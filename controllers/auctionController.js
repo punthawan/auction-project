@@ -106,9 +106,6 @@ const updateAuctionStatus = async () => {
   }
 };
 
-// เรียกใช้งานทุก 1 นาที
-setInterval(updateAuctionStatus, 60 * 1000);
-
 // JOIN AUCTION
 const joinAuction = async (req, res) => {
   const { auctionId } = req.body;
@@ -130,6 +127,10 @@ const joinAuction = async (req, res) => {
     // ตรวจสอบสถานะการประมูลว่าเสร็จสิ้นหรือยัง
     if (auction.status === "completed") {
       return res.status(400).json({ message: "This auction has already ended" });
+    }
+
+    if (auction.status === "upcoming") {
+      return res.status(400).json({ message: "ห้องประมูลนี้ยังไม่เริ่ม" });
     }
 
     // ตรวจสอบว่า participants มีค่าหรือไม่ หากไม่มีจะตั้งเป็น array ว่าง

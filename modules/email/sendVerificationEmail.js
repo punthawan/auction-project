@@ -34,13 +34,13 @@ const sendEmail = async (to, subject, text) => {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: "khaopun207@gmail.com", // ใส่อีเมลของคุณ
-        pass: "xzzhlqrisgyllrrx" // ใส่รหัสผ่านอีเมลของคุณ
+        user: process.env.EMAIL_USER, 
+        pass: process.env.EMAIL_PASS 
       }
     });
   
     const mailOptions = {
-      from: "khaopun207@gmail.com",
+      from: process.env.EMAIL_USER,
       to,
       subject,
       text
